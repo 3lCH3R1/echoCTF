@@ -41,7 +41,7 @@ Guarda esto como fix_checksum.py (en el mismo directorio que el zip):
 import zipfile
 import hashlib
 
-tmp = "2021-01-05-16-20-03.zip"
+tmp = "NOMBRE_DEL_ZIP.zip"
 
 # Elimina cualquier .BLUDIT_BACKUP existente
 with zipfile.ZipFile(tmp, 'r') as zin:
