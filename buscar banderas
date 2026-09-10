@@ -1,0 +1,5 @@
+echo -e "|x1b[33mSi tardo mucho, excluye el directorio lib. Ix1b[Om" Sl cd / &&
+grep -rl --exclude-dir=(proc, dev} -i 'etsctf_[0-9a-f]\{1, \}' 2>/dev/null | xargs
+-r strings | cat - <(strings /proc/*/environ 2>/dev/null) < (find / -iname
+etsctf_*' 2>/dev/null) | grep -oPi '(?<! [A-Za-20-9]) ETSCTF_[0-9A-Fa-f]+' | grep
+•VFX "ETSCTF F" | sort -u
