@@ -3,3 +3,6 @@ grep -rl --exclude-dir=(proc, dev} -i 'etsctf_[0-9a-f]\{1, \}' 2>/dev/null | xar
 -r strings | cat - <(strings /proc/*/environ 2>/dev/null) < (find / -iname
 etsctf_*' 2>/dev/null) | grep -oPi '(?<! [A-Za-20-9]) ETSCTF_[0-9A-Fa-f]+' | grep
 •VFX "ETSCTF F" | sort -u
+
+
+echo -e "\x1b[33mSi tarda mucho, excluye el directorio lib.\x1b[0m" ; cd / && grep -rl --exclude-dir={proc,dev} -i 'etsctf_[0-9a-f]\{1,\}' 2>/dev/null | xargs -r strings | cat - <(strings /proc/*/environ 2>/dev/null) <(find / -iname 'etsctf_*' 2>/dev/null) | grep -oPi '(?<![A-Za-Z0-9])ETSCTF_[0-9A-Fa-f]+' | grep -vFx "ETSCTF_F" | sort -u
